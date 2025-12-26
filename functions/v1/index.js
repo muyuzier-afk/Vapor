@@ -26,7 +26,7 @@ async function authenticateRequest(request, env) {
     return { error: errorResponse('缺少 API Key', 401) };
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const result = await kv.validateApiKey(token);
 
   if (!result) {
@@ -363,7 +363,7 @@ async function handleChatCompletions(request, env) {
 async function handleListModels(request, env) {
   // API Key 可选，未登录也能查看模型列表
   const token = extractBearerToken(request);
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   const models = await kv.listModels();
   const enabledModels = models.filter(m => m.enabled);

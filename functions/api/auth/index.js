@@ -12,7 +12,7 @@ import { signJWT, jsonResponse, errorResponse, setCookie } from '../../src/lib/u
  * GET /api/auth/login
  */
 export async function handleLogin(request, env) {
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 从 KV 获取 OAuth 配置
   const oauthConfig = await kv.getOAuthConfig();
@@ -47,7 +47,7 @@ export async function handleCallback(request, env) {
     return errorResponse('缺少必要参数', 400);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 验证 state
   const stateData = await kv.get(`oauth_state:${state}`);
@@ -139,7 +139,7 @@ export async function handleLogout(request, env, ctx) {
   const { user, session } = ctx;
 
   if (session?.sid) {
-    const kv = createKVClient(env.KV);
+    const kv = createKVClient(env.KV, env);
     await kv.deleteSession(session.sid);
   }
 
@@ -165,7 +165,7 @@ export async function handleMe(request, env, ctx) {
   }
 
   // 从 KV 检查是否是管理员
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const isAdmin = await kv.isAdmin(ctx.user.uid);
 
   return jsonResponse({

@@ -20,9 +20,12 @@ export const KV_PREFIX = {
 /**
  * 创建 KV 操作实例
  * @param {KVNamespace} kv - EdgeOne KV 命名空间
+ * @param {Object} env - 环境变量（可选，用于读取配置）
  */
-export function createKVClient(kv) {
+export function createKVClient(kv, env = {}) {
   return {
+    // 保存 env 引用
+    _env: env,
     // ============ 通用操作 ============
 
     /**
@@ -479,8 +482,13 @@ export function createKVClient(kv) {
 
     /**
      * 获取管理员列表
+     * 优先从环境变量读取（逗号分隔），回退到 KV
      */
     async getAdminList() {
+      // 优先从环境变量读取
+      if (this._env.ADMIN_LIST) {
+        return this._env.ADMIN_LIST.split(',').map(s => s.trim()).filter(Boolean);
+      }
       const list = await this.getConfig('admin_list');
       return list || [];
     },
@@ -528,9 +536,19 @@ export function createKVClient(kv) {
 
     /**
      * 获取 OAuth 配置
+     * 优先从环境变量读取，回退到 KV
      * @returns {Promise<{client_id: string, client_secret: string, redirect_uri: string, frontend_url: string} | null>}
      */
     async getOAuthConfig() {
+      // 优先从环境变量读取
+      if (this._env.OAUTH_CLIENT_ID) {
+        return {
+          client_id: this._env.OAUTH_CLIENT_ID,
+          client_secret: this._env.OAUTH_CLIENT_SECRET || '',
+          redirect_uri: this._env.OAUTH_REDIRECT_URI || '',
+          frontend_url: this._env.OAUTH_FRONTEND_URL || '/',
+        };
+      }
       return await this.getConfig('oauth');
     },
 
@@ -549,8 +567,13 @@ export function createKVClient(kv) {
 
     /**
      * 获取 JWT 密钥
+     * 优先从环境变量读取，回退到 KV
      */
     async getJWTSecret() {
+      // 优先从环境变量读取
+      if (this._env.JWT_SECRET) {
+        return this._env.JWT_SECRET;
+      }
       const secret = await this.getConfig('jwt_secret');
       return secret;
     },
@@ -566,9 +589,19 @@ export function createKVClient(kv) {
 
     /**
      * 获取 EPay 支付配置
+     * 优先从环境变量读取，回退到 KV
      * @returns {Promise<{pid: string, key: string, notify_url: string, return_url: string} | null>}
      */
     async getEPayConfig() {
+      // 优先从环境变量读取
+      if (this._env.EPAY_PID) {
+        return {
+          pid: this._env.EPAY_PID,
+          key: this._env.EPAY_KEY || '',
+          notify_url: this._env.EPAY_NOTIFY_URL || '',
+          return_url: this._env.EPAY_RETURN_URL || '',
+        };
+      }
       return await this.getConfig('epay');
     },
 

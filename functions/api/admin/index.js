@@ -14,7 +14,7 @@ async function requireAdmin(ctx, env) {
     return errorResponse('未登录', 401);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const isAdmin = await kv.isAdmin(ctx.user.uid);
 
   if (!isAdmin) {
@@ -34,7 +34,7 @@ async function handleListModels(request, env, ctx) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const models = await kv.listModels();
 
   return jsonResponse({ models });
@@ -55,7 +55,7 @@ async function handleSaveModel(request, env, ctx) {
     return errorResponse('缺少必要参数: model_id, channel_id', 400);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   await kv.setModel(model_id, {
     name: name || model_id,
@@ -79,7 +79,7 @@ async function handleDeleteModel(request, env, ctx, modelId) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   await kv.deleteModel(modelId);
 
   return jsonResponse({ success: true });
@@ -95,7 +95,7 @@ async function handleListChannels(request, env, ctx) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const channels = await kv.listChannels();
 
   // 隐藏 API Key
@@ -122,7 +122,7 @@ async function handleSaveChannel(request, env, ctx) {
     return errorResponse('缺少必要参数: channel_id, provider, api_key', 400);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 如果 api_key 是 *** 开头，说明没有修改，保留原值
   let finalApiKey = api_key;
@@ -155,7 +155,7 @@ async function handleDeleteChannel(request, env, ctx, channelId) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   await kv.delete(`channel:${channelId}`);
 
   return jsonResponse({ success: true });
@@ -171,7 +171,7 @@ async function handleListUsers(request, env, ctx) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const keys = await kv.list('user:', 500);
   const users = [];
 
@@ -197,7 +197,7 @@ async function handleUpdateUser(request, env, ctx, uid) {
   if (error) return error;
 
   const body = await request.json().catch(() => ({}));
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   const user = await kv.getUser(uid);
   if (!user) {
@@ -227,7 +227,7 @@ async function handleGetStats(request, env, ctx) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 统计用户数
   const userKeys = await kv.list('user:', 1000);
@@ -282,7 +282,7 @@ async function handleGetSettings(request, env, ctx) {
   const error = await requireAdmin(ctx, env);
   if (error) return error;
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   const oauth = await kv.getOAuthConfig();
   const jwtSecret = await kv.getJWTSecret();
@@ -314,7 +314,7 @@ async function handleSaveSettings(request, env, ctx) {
   if (error) return error;
 
   const body = await request.json().catch(() => ({}));
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 保存 OAuth 配置
   if (body.oauth) {

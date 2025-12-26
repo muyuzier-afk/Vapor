@@ -31,7 +31,7 @@ async function resolveUser(request, env) {
   }
 
   // 从 KV 获取 JWT 密钥
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const jwtSecret = await kv.getJWTSecret();
   if (!jwtSecret) {
     return { user: null, session: null };

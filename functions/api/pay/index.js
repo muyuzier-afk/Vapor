@@ -24,7 +24,7 @@ async function handleCreateOrder(request, env, ctx) {
     return errorResponse('金额无效，必须大于0且最多2位小数', 400);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 获取支付配置
   const epayConfig = await kv.getEPayConfig();
@@ -60,7 +60,7 @@ async function handlePayNotify(request, env) {
   const url = new URL(request.url);
   const params = Object.fromEntries(url.searchParams);
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 获取支付配置
   const epayConfig = await kv.getEPayConfig();
@@ -102,7 +102,7 @@ async function handleQueryOrder(request, env, ctx, tradeNo) {
     return errorResponse('未登录', 401);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const order = await kv.getOrder(tradeNo);
 
   if (!order) {
@@ -148,7 +148,7 @@ async function handlePayReturn(request, env) {
   const url = new URL(request.url);
   const tradeNo = url.searchParams.get('out_trade_no');
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   // 从 OAuth 配置读取前端 URL
   const oauthConfig = await kv.getOAuthConfig();

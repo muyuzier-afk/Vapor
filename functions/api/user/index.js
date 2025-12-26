@@ -15,7 +15,7 @@ async function handleListKeys(request, env, ctx) {
     return errorResponse('未登录', 401);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const keys = await kv.listUserApiKeys(ctx.user.uid);
 
   // 返回时隐藏完整 key
@@ -42,7 +42,7 @@ async function handleCreateKey(request, env, ctx) {
   const body = await request.json().catch(() => ({}));
   const name = body.name || 'default';
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const key = await kv.createApiKey(ctx.user.uid, name);
 
   return jsonResponse({
@@ -60,7 +60,7 @@ async function handleDeleteKey(request, env, ctx, keyToDelete) {
     return errorResponse('未登录', 401);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
 
   try {
     await kv.deleteApiKey(keyToDelete, ctx.user.uid);
@@ -82,7 +82,7 @@ async function handleGetUsage(request, env, ctx) {
   const url = new URL(request.url);
   const days = parseInt(url.searchParams.get('days') || '30', 10);
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const usage = await kv.getUserUsage(ctx.user.uid, Math.min(days, 90));
 
   // 汇总统计
@@ -115,7 +115,7 @@ async function handleListOrders(request, env, ctx) {
     return errorResponse('未登录', 401);
   }
 
-  const kv = createKVClient(env.KV);
+  const kv = createKVClient(env.KV, env);
   const orders = await kv.listUserOrders(ctx.user.uid);
 
   return jsonResponse({ orders });
