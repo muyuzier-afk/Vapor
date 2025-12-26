@@ -174,9 +174,6 @@ export function md5Sync(str) {
   return hex(md51(str));
 }
 
-// 重新导出为 md5（同步版本）
-export { md5Sync as md5 } from './utils.js';
-
 /**
  * 生成 JWT Token
  */

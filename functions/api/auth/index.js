@@ -3,9 +3,9 @@
  * /api/auth/*
  */
 
-import { createKVClient } from '../../src/lib/kv.js';
-import { getAuthorizationUrl, exchangeCodeForToken, getUserInfo, generateState } from '../../src/lib/oauth.js';
-import { signJWT, jsonResponse, errorResponse, setCookie } from '../../src/lib/utils.js';
+import { createKVClient } from '../../../src/lib/kv.js';
+import { getAuthorizationUrl, exchangeCodeForToken, getUserInfo, generateState } from '../../../src/lib/oauth.js';
+import { signJWT, jsonResponse, errorResponse, setCookie } from '../../../src/lib/utils.js';
 
 /**
  * 处理 OAuth 登录发起
