@@ -30,14 +30,20 @@ async function resolveUser(request, env) {
     return { user: null, session: null };
   }
 
+  // 从 KV 获取 JWT 密钥
+  const kv = createKVClient(env.KV);
+  const jwtSecret = await kv.getJWTSecret();
+  if (!jwtSecret) {
+    return { user: null, session: null };
+  }
+
   // 验证 JWT
-  const payload = await verifyJWT(token, env.JWT_SECRET);
+  const payload = await verifyJWT(token, jwtSecret);
   if (!payload) {
     return { user: null, session: null };
   }
 
   // 验证 Session
-  const kv = createKVClient(env.KV);
   const session = await kv.getSession(payload.sid);
   if (!session) {
     return { user: null, session: null };
