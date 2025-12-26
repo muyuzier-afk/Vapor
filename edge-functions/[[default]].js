@@ -66,7 +66,7 @@ async function resolveUser(request, env) {
  * @param {Object} context.env - 环境变量
  * @param {Function} context.waitUntil - 延长事件处理生命周期
  */
-export default async function onRequest(context) {
+export async function onRequest(context) {
   const { request, env, waitUntil } = context;
   const url = new URL(request.url);
   const path = url.pathname;
