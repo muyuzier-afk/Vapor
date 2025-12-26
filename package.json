@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "edgeone pages dev",
-    "build": "edgeone pages build",
     "deploy": "edgeone pages deploy"
   },
   "keywords": [
