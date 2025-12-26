@@ -1,0 +1,12 @@
+# Vapor - EdgeOne Pages 配置
+
+name = "vapor"
+compatibility_date = "2024-01-01"
+
+# KV 命名空间绑定
+[[kv_namespaces]]
+binding = "KV"
+id = "ns-4PLHNgHQLSH1"
+
+# 注：所有配置（OAuth、JWT、管理员、支付）已移至 KV 存储
+# 部署后通过管理后台 → 设置 页面配置

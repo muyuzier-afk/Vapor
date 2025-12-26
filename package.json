@@ -1,0 +1,19 @@
+{
+  "name": "vapor",
+  "version": "1.0.0",
+  "description": "LLM API 销售系统 - EdgeOne Pages Serverless",
+  "type": "module",
+  "scripts": {
+    "dev": "edgeone pages dev",
+    "build": "edgeone pages build",
+    "deploy": "edgeone pages deploy"
+  },
+  "keywords": [
+    "llm",
+    "api",
+    "serverless",
+    "edgeone"
+  ],
+  "author": "",
+  "license": "MIT"
+}

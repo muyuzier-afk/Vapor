@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vapor Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            surface: {
+              0: '#ffffff',
+              1: '#fafafa',
+              2: '#f5f5f5',
+              3: '#e0e0e0',
+            }
+          },
+          boxShadow: {
+            'md-1': '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+            'md-2': '0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12)',
+            'md-3': '0 10px 20px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.10)',
+            'md-4': '0 15px 25px rgba(0,0,0,0.15), 0 5px 10px rgba(0,0,0,0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+
+    .ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10);
+      opacity: 0;
+      transition: transform 0.4s, opacity 0.4s;
+    }
+    .ripple:active::after {
+      transform: scale(0);
+      opacity: 1;
+      transition: 0s;
+    }
+
+    .transition-md {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f5f5f5; }
+    ::-webkit-scrollbar-thumb { background: #bdbdbd; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9e9e9e; }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #000 !important;
+    }
+
+    .tab-indicator {
+      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Table styles */
+    table { border-collapse: separate; border-spacing: 0; }
+    th { font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body class="bg-surface-1 min-h-screen font-sans text-gray-900 antialiased">
+  <!-- Navigation -->
+  <nav class="bg-black text-white sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex justify-between h-14">
+        <div class="flex items-center gap-3">
+          <a href="/" class="text-lg font-semibold tracking-tight">Vapor</a>
+          <span class="text-xs font-medium px-2 py-0.5 bg-white/20 rounded">Admin</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="/" class="text-sm text-white/70 hover:text-white transition-md">返回首页</a>
+          <span id="admin-name" class="text-sm font-medium"></span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-2xl p-5 shadow-md-1">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">用户</p>
+        <p class="text-2xl font-semibold mt-1" id="stat-users">-</p>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md-1">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">模型</p>
+        <p class="text-2xl font-semibold mt-1" id="stat-models">-</p>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md-1">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">今日请求</p>
+        <p class="text-2xl font-semibold mt-1" id="stat-requests">-</p>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md-1">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">今日消费</p>
+        <p class="text-2xl font-semibold mt-1" id="stat-cost">-</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl shadow-md-1 overflow-hidden">
+      <div class="relative border-b border-gray-100 px-6">
+        <div class="flex gap-8">
+          <button onclick="showTab('channels')" class="tab-btn py-4 text-sm font-medium text-black" data-tab="channels">渠道</button>
+          <button onclick="showTab('models')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="models">模型</button>
+          <button onclick="showTab('users')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="users">用户</button>
+          <button onclick="showTab('settings')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="settings">设置</button>
+        </div>
+        <div id="tab-indicator" class="tab-indicator absolute bottom-0 h-0.5 bg-black" style="left: 24px; width: 32px;"></div>
+      </div>
+
+      <!-- Channels Tab -->
+      <div id="tab-channels" class="tab-content">
+        <div class="px-6 py-4 flex justify-between items-center border-b border-gray-50">
+          <h3 class="font-medium">渠道列表</h3>
+          <button onclick="showChannelModal()" class="px-4 py-2 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-md ripple">
+            添加渠道
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-surface-1">
+                <th class="px-6 py-3 text-left text-xs text-gray-400">ID</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">名称</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">提供商</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">Base URL</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">状态</th>
+                <th class="px-6 py-3 text-right text-xs text-gray-400">操作</th>
+              </tr>
+            </thead>
+            <tbody id="channels-table">
+              <tr><td colspan="6" class="px-6 py-12 text-center text-gray-400">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Models Tab -->
+      <div id="tab-models" class="tab-content hidden">
+        <div class="px-6 py-4 flex justify-between items-center border-b border-gray-50">
+          <h3 class="font-medium">模型列表</h3>
+          <button onclick="showModelModal()" class="px-4 py-2 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-md ripple">
+            添加模型
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-surface-1">
+                <th class="px-6 py-3 text-left text-xs text-gray-400">模型 ID</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">名称</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">渠道</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">上游模型</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">价格</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">状态</th>
+                <th class="px-6 py-3 text-right text-xs text-gray-400">操作</th>
+              </tr>
+            </thead>
+            <tbody id="models-table">
+              <tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="tab-content hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h3 class="font-medium">用户列表</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-surface-1">
+                <th class="px-6 py-3 text-left text-xs text-gray-400">UID</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">用户名</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">余额</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">总消费</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">注册时间</th>
+                <th class="px-6 py-3 text-left text-xs text-gray-400">状态</th>
+                <th class="px-6 py-3 text-right text-xs text-gray-400">操作</th>
+              </tr>
+            </thead>
+            <tbody id="users-table">
+              <tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="tab-settings" class="tab-content hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h3 class="font-medium">系统配置</h3>
+        </div>
+        <div class="p-6 space-y-8">
+          <!-- OAuth 配置 -->
+          <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-4">LinuxDo OAuth</h4>
+            <form id="oauth-form" class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">Client ID</label>
+                  <input type="text" name="client_id" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="OAuth Client ID">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">Client Secret</label>
+                  <input type="text" name="client_secret" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md font-mono text-sm" placeholder="OAuth Client Secret">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">Redirect URI</label>
+                  <input type="text" name="redirect_uri" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 https://your-domain.com/api/auth/callback">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">Frontend URL</label>
+                  <input type="text" name="frontend_url" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="登录后跳转地址，默认 /">
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- JWT 配置 -->
+          <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-4">JWT 密钥</h4>
+            <div class="flex gap-4">
+              <input type="text" id="jwt-secret" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md font-mono text-sm" placeholder="输入新密钥以更新（留空保持不变）">
+              <button onclick="generateJWTSecret()" class="px-5 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-surface-2 transition-md">生成随机密钥</button>
+            </div>
+            <p id="jwt-status" class="text-sm text-gray-400 mt-2"></p>
+          </div>
+
+          <!-- 支付配置 -->
+          <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-4">LinuxDo Credit (EPay) 支付</h4>
+            <form id="epay-form" class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">商户 PID</label>
+                  <input type="text" name="pid" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="支付平台商户 ID">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">商户密钥</label>
+                  <input type="text" name="key" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md font-mono text-sm" placeholder="支付平台商户密钥">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">异步通知 URL</label>
+                  <input type="text" name="notify_url" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 https://your-domain.com/api/pay/notify">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-500 mb-2">同步回跳 URL</label>
+                  <input type="text" name="return_url" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 https://your-domain.com/api/pay/return">
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="pt-4">
+            <button onclick="saveSettings()" class="px-6 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-md ripple">
+              保存配置
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Channel Modal -->
+  <div id="channel-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-md-4 p-8 w-full max-w-lg mx-4">
+      <h3 class="text-xl font-semibold mb-6" id="channel-modal-title">添加渠道</h3>
+      <form id="channel-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">渠道 ID</label>
+          <input type="text" name="channel_id" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 openai-main">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">名称</label>
+          <input type="text" name="name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="显示名称">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">提供商</label>
+          <select name="provider" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md bg-white">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="gemini">Gemini</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">Base URL</label>
+          <input type="text" name="base_url" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="留空使用默认">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">API Key</label>
+          <input type="text" name="api_key" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md font-mono text-sm">
+        </div>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" name="enabled" id="channel-enabled" checked class="w-5 h-5 rounded border-2 border-gray-300 text-black focus:ring-black focus:ring-offset-0">
+          <label for="channel-enabled" class="text-sm font-medium">启用</label>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="hideChannelModal()" class="flex-1 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-surface-2 transition-md">取消</button>
+          <button type="submit" class="flex-1 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-md ripple">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Model Modal -->
+  <div id="model-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-md-4 p-8 w-full max-w-lg mx-4">
+      <h3 class="text-xl font-semibold mb-6" id="model-modal-title">添加模型</h3>
+      <form id="model-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">模型 ID</label>
+          <input type="text" name="model_id" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 gpt-4o">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">名称</label>
+          <input type="text" name="name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="如 GPT-4o">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">关联渠道</label>
+          <select name="channel_id" required id="model-channel-select" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md bg-white">
+            <option value="">请选择渠道</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-2">上游模型 ID</label>
+          <input type="text" name="upstream_model" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md" placeholder="留空则与模型 ID 相同">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-2">输入价格</label>
+            <div class="relative">
+              <input type="number" name="input_price" step="0.0001" value="0" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md pr-16">
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">$/1K</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-2">输出价格</label>
+            <div class="relative">
+              <input type="number" name="output_price" step="0.0001" value="0" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black transition-md pr-16">
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">$/1K</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" name="enabled" id="model-enabled" checked class="w-5 h-5 rounded border-2 border-gray-300 text-black focus:ring-black focus:ring-offset-0">
+          <label for="model-enabled" class="text-sm font-medium">启用</label>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="hideModelModal()" class="flex-1 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-surface-2 transition-md">取消</button>
+          <button type="submit" class="flex-1 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-md ripple">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let channels = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const authRes = await fetch('/api/auth/me');
+      if (!authRes.ok) {
+        location.href = '/';
+        return;
+      }
+      const authData = await authRes.json();
+      if (!authData.user.is_admin) {
+        alert('无管理员权限');
+        location.href = '/';
+        return;
+      }
+      document.getElementById('admin-name').textContent = authData.user.username;
+
+      loadStats();
+      loadChannels();
+      updateTabIndicator();
+
+      document.getElementById('channel-form').addEventListener('submit', saveChannel);
+      document.getElementById('model-form').addEventListener('submit', saveModel);
+    });
+
+    async function loadStats() {
+      const res = await fetch('/api/admin/stats');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('stat-users').textContent = data.stats.total_users;
+        document.getElementById('stat-models').textContent = data.stats.total_models;
+        document.getElementById('stat-requests').textContent = data.stats.today_requests;
+        document.getElementById('stat-cost').textContent = data.stats.today_cost.toFixed(2);
+      }
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.remove('text-gray-400');
+          btn.classList.add('text-black');
+        } else {
+          btn.classList.add('text-gray-400');
+          btn.classList.remove('text-black');
+        }
+      });
+
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      updateTabIndicator();
+
+      if (tabName === 'channels') loadChannels();
+      if (tabName === 'models') loadModels();
+      if (tabName === 'users') loadUsers();
+      if (tabName === 'settings') loadSettings();
+    }
+
+    function updateTabIndicator() {
+      const activeBtn = document.querySelector('.tab-btn.text-black');
+      const indicator = document.getElementById('tab-indicator');
+      if (activeBtn && indicator) {
+        indicator.style.left = (activeBtn.offsetLeft + 24) + 'px';
+        indicator.style.width = activeBtn.offsetWidth + 'px';
+      }
+    }
+
+    // ============ Channels ============
+
+    async function loadChannels() {
+      const res = await fetch('/api/admin/channels');
+      const data = await res.json();
+      channels = data.channels || [];
+
+      const tbody = document.getElementById('channels-table');
+      if (channels.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400">暂无渠道</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = channels.map(c => `
+        <tr class="border-b border-gray-50 hover:bg-surface-1 transition-md">
+          <td class="px-6 py-4 text-sm font-mono">${c.channel_id}</td>
+          <td class="px-6 py-4 text-sm">${c.name}</td>
+          <td class="px-6 py-4 text-sm">${c.provider}</td>
+          <td class="px-6 py-4 text-sm text-gray-400">${c.base_url || '默认'}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${c.enabled ? 'bg-black' : 'bg-gray-300'}"></span>
+              <span class="text-sm">${c.enabled ? '启用' : '禁用'}</span>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right space-x-4">
+            <button onclick='editChannel(${JSON.stringify(c)})' class="text-sm text-gray-500 hover:text-black transition-md">编辑</button>
+            <button onclick="deleteChannel('${c.channel_id}')" class="text-sm text-gray-400 hover:text-red-500 transition-md">删除</button>
+          </td>
+        </tr>
+      `).join('');
+
+      updateChannelSelect();
+    }
+
+    function showChannelModal(data = null) {
+      const form = document.getElementById('channel-form');
+      form.reset();
+      document.getElementById('channel-modal-title').textContent = data ? '编辑渠道' : '添加渠道';
+      if (data) {
+        form.channel_id.value = data.channel_id;
+        form.channel_id.readOnly = true;
+        form.channel_id.classList.add('bg-surface-2');
+        form.name.value = data.name;
+        form.provider.value = data.provider;
+        form.base_url.value = data.base_url || '';
+        form.api_key.value = data.api_key;
+        form.enabled.checked = data.enabled;
+      } else {
+        form.channel_id.readOnly = false;
+        form.channel_id.classList.remove('bg-surface-2');
+      }
+      document.getElementById('channel-modal').classList.remove('hidden');
+      document.getElementById('channel-modal').classList.add('flex');
+    }
+
+    function hideChannelModal() {
+      document.getElementById('channel-modal').classList.add('hidden');
+      document.getElementById('channel-modal').classList.remove('flex');
+    }
+
+    function editChannel(data) {
+      showChannelModal(data);
+    }
+
+    async function saveChannel(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        channel_id: form.channel_id.value,
+        name: form.name.value || form.channel_id.value,
+        provider: form.provider.value,
+        base_url: form.base_url.value,
+        api_key: form.api_key.value,
+        enabled: form.enabled.checked,
+      };
+
+      const res = await fetch('/api/admin/channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        hideChannelModal();
+        loadChannels();
+      } else {
+        const err = await res.json();
+        alert('保存失败: ' + (err.error?.message || '未知错误'));
+      }
+    }
+
+    async function deleteChannel(id) {
+      if (!confirm('确定删除此渠道？')) return;
+      await fetch(`/api/admin/channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      loadChannels();
+    }
+
+    // ============ Models ============
+
+    async function loadModels() {
+      const res = await fetch('/api/admin/models');
+      const data = await res.json();
+      const models = data.models || [];
+
+      const tbody = document.getElementById('models-table');
+      if (models.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">暂无模型</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = models.map(m => `
+        <tr class="border-b border-gray-50 hover:bg-surface-1 transition-md">
+          <td class="px-6 py-4 text-sm font-mono">${m.model_id}</td>
+          <td class="px-6 py-4 text-sm">${m.name}</td>
+          <td class="px-6 py-4 text-sm">${m.channel_id}</td>
+          <td class="px-6 py-4 text-sm text-gray-400">${m.upstream_model || m.model_id}</td>
+          <td class="px-6 py-4 text-sm">
+            <span class="text-gray-400">I:</span> ${m.input_price}
+            <span class="text-gray-400 ml-2">O:</span> ${m.output_price}
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${m.enabled ? 'bg-black' : 'bg-gray-300'}"></span>
+              <span class="text-sm">${m.enabled ? '启用' : '禁用'}</span>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right space-x-4">
+            <button onclick='editModel(${JSON.stringify(m)})' class="text-sm text-gray-500 hover:text-black transition-md">编辑</button>
+            <button onclick="deleteModel('${m.model_id}')" class="text-sm text-gray-400 hover:text-red-500 transition-md">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateChannelSelect() {
+      const select = document.getElementById('model-channel-select');
+      select.innerHTML = '<option value="">请选择渠道</option>' + channels.map(c =>
+        `<option value="${c.channel_id}">${c.name} (${c.provider})</option>`
+      ).join('');
+    }
+
+    function showModelModal(data = null) {
+      updateChannelSelect();
+      const form = document.getElementById('model-form');
+      form.reset();
+      document.getElementById('model-modal-title').textContent = data ? '编辑模型' : '添加模型';
+      if (data) {
+        form.model_id.value = data.model_id;
+        form.model_id.readOnly = true;
+        form.model_id.classList.add('bg-surface-2');
+        form.name.value = data.name;
+        form.channel_id.value = data.channel_id;
+        form.upstream_model.value = data.upstream_model || '';
+        form.input_price.value = data.input_price;
+        form.output_price.value = data.output_price;
+        form.enabled.checked = data.enabled;
+      } else {
+        form.model_id.readOnly = false;
+        form.model_id.classList.remove('bg-surface-2');
+      }
+      document.getElementById('model-modal').classList.remove('hidden');
+      document.getElementById('model-modal').classList.add('flex');
+    }
+
+    function hideModelModal() {
+      document.getElementById('model-modal').classList.add('hidden');
+      document.getElementById('model-modal').classList.remove('flex');
+    }
+
+    function editModel(data) {
+      showModelModal(data);
+    }
+
+    async function saveModel(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        model_id: form.model_id.value,
+        name: form.name.value || form.model_id.value,
+        channel_id: form.channel_id.value,
+        upstream_model: form.upstream_model.value,
+        input_price: parseFloat(form.input_price.value) || 0,
+        output_price: parseFloat(form.output_price.value) || 0,
+        enabled: form.enabled.checked,
+      };
+
+      const res = await fetch('/api/admin/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        hideModelModal();
+        loadModels();
+      } else {
+        const err = await res.json();
+        alert('保存失败: ' + (err.error?.message || '未知错误'));
+      }
+    }
+
+    async function deleteModel(id) {
+      if (!confirm('确定删除此模型？')) return;
+      await fetch(`/api/admin/models/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      loadModels();
+    }
+
+    // ============ Users ============
+
+    async function loadUsers() {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      const users = data.users || [];
+
+      const tbody = document.getElementById('users-table');
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">暂无用户</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map(u => `
+        <tr class="border-b border-gray-50 hover:bg-surface-1 transition-md">
+          <td class="px-6 py-4 text-sm font-mono">${u.uid}</td>
+          <td class="px-6 py-4 text-sm font-medium">${u.username}</td>
+          <td class="px-6 py-4 text-sm">${u.balance?.toFixed(2) || '0.00'}</td>
+          <td class="px-6 py-4 text-sm">${u.total_consumed?.toFixed(2) || '0.00'}</td>
+          <td class="px-6 py-4 text-sm text-gray-400">${u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${u.is_blocked ? 'bg-red-500' : 'bg-black'}"></span>
+              <span class="text-sm">${u.is_blocked ? '封禁' : '正常'}</span>
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right space-x-4">
+            <button onclick="adjustBalance('${u.uid}', ${u.balance || 0})" class="text-sm text-gray-500 hover:text-black transition-md">余额</button>
+            <button onclick="toggleBlock('${u.uid}', ${!u.is_blocked})" class="text-sm ${u.is_blocked ? 'text-gray-500 hover:text-black' : 'text-gray-400 hover:text-red-500'} transition-md">${u.is_blocked ? '解封' : '封禁'}</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function adjustBalance(uid, current) {
+      const newBalance = prompt(`当前余额: ${current}\n请输入新余额:`, current);
+      if (newBalance === null) return;
+
+      const res = await fetch(`/api/admin/users/${uid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ balance: parseFloat(newBalance) })
+      });
+
+      if (res.ok) {
+        loadUsers();
+      } else {
+        alert('操作失败');
+      }
+    }
+
+    async function toggleBlock(uid, block) {
+      if (!confirm(block ? '确定封禁此用户？' : '确定解封此用户？')) return;
+
+      const res = await fetch(`/api/admin/users/${uid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_blocked: block })
+      });
+
+      if (res.ok) {
+        loadUsers();
+      } else {
+        alert('操作失败');
+      }
+    }
+
+    // ============ Settings ============
+
+    async function loadSettings() {
+      const res = await fetch('/api/admin/settings');
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const form = document.getElementById('oauth-form');
+
+      if (data.oauth) {
+        form.client_id.value = data.oauth.client_id || '';
+        form.client_secret.value = data.oauth.client_secret || '';
+        form.redirect_uri.value = data.oauth.redirect_uri || '';
+        form.frontend_url.value = data.oauth.frontend_url || '/';
+      }
+
+      document.getElementById('jwt-status').textContent = data.jwt_configured
+        ? '已配置'
+        : '未配置，请设置 JWT 密钥';
+
+      // 加载 EPay 配置
+      const epayForm = document.getElementById('epay-form');
+      if (data.epay) {
+        epayForm.pid.value = data.epay.pid || '';
+        epayForm.key.value = data.epay.key || '';
+        epayForm.notify_url.value = data.epay.notify_url || '';
+        epayForm.return_url.value = data.epay.return_url || '';
+      }
+    }
+
+    function generateJWTSecret() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 64; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('jwt-secret').value = result;
+    }
+
+    async function saveSettings() {
+      const form = document.getElementById('oauth-form');
+      const epayForm = document.getElementById('epay-form');
+      const jwtSecret = document.getElementById('jwt-secret').value;
+
+      const data = {
+        oauth: {
+          client_id: form.client_id.value,
+          client_secret: form.client_secret.value,
+          redirect_uri: form.redirect_uri.value,
+          frontend_url: form.frontend_url.value || '/',
+        },
+        epay: {
+          pid: epayForm.pid.value,
+          key: epayForm.key.value,
+          notify_url: epayForm.notify_url.value,
+          return_url: epayForm.return_url.value,
+        }
+      };
+
+      if (jwtSecret) {
+        data.jwt_secret = jwtSecret;
+      }
+
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        alert('保存成功');
+        document.getElementById('jwt-secret').value = '';
+        loadSettings();
+      } else {
+        const err = await res.json();
+        alert('保存失败: ' + (err.error?.message || '未知错误'));
+      }
+    }
+  </script>
+</body>
+</html>

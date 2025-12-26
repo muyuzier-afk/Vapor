@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vapor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            surface: {
+              0: '#ffffff',
+              1: '#fafafa',
+              2: '#f5f5f5',
+              3: '#e0e0e0',
+            }
+          },
+          boxShadow: {
+            'md-1': '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+            'md-2': '0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12)',
+            'md-3': '0 10px 20px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.10)',
+            'md-4': '0 15px 25px rgba(0,0,0,0.15), 0 5px 10px rgba(0,0,0,0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+
+    /* Material Ripple Effect */
+    .ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(0,0,0,0.1) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10);
+      opacity: 0;
+      transition: transform 0.4s, opacity 0.4s;
+    }
+    .ripple:active::after {
+      transform: scale(0);
+      opacity: 1;
+      transition: 0s;
+    }
+
+    /* Smooth transitions */
+    .transition-md {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f5f5f5; }
+    ::-webkit-scrollbar-thumb { background: #bdbdbd; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9e9e9e; }
+
+    /* Input focus */
+    input:focus, select:focus {
+      outline: none;
+      border-color: #000 !important;
+    }
+
+    /* Tab indicator animation */
+    .tab-indicator {
+      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-surface-1 min-h-screen font-sans text-gray-900 antialiased">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-md-1 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="/" class="text-xl font-semibold tracking-tight">Vapor</a>
+        </div>
+        <div class="flex items-center gap-6">
+          <div id="nav-user" class="hidden items-center gap-6">
+            <span id="user-balance" class="text-sm text-gray-600 font-medium"></span>
+            <div class="flex items-center gap-3">
+              <img id="user-avatar" class="w-8 h-8 rounded-full ring-2 ring-gray-100" src="" alt="">
+              <span id="user-name" class="text-sm font-medium"></span>
+            </div>
+            <a href="/admin.html" id="admin-link" class="hidden text-sm font-medium hover:text-gray-600 transition-md">Admin</a>
+            <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-900 transition-md">退出</button>
+          </div>
+          <div id="nav-guest">
+            <a href="/api/auth/login" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-black rounded-full hover:bg-gray-800 transition-md ripple">
+              登录
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+    <!-- Guest View -->
+    <div id="guest-content" class="py-20">
+      <div class="max-w-2xl mx-auto text-center">
+        <h1 class="text-5xl font-bold tracking-tight mb-6">Vapor</h1>
+        <p class="text-xl text-gray-500 mb-10 leading-relaxed">
+          统一的 LLM API 网关<br>
+          OpenAI · Anthropic · Gemini
+        </p>
+        <a href="/api/auth/login" class="inline-flex items-center px-8 py-4 text-base font-medium text-white bg-black rounded-full hover:bg-gray-800 transition-md shadow-md-2 hover:shadow-md-3 ripple">
+          开始使用
+        </a>
+      </div>
+
+      <!-- Features -->
+      <div class="grid md:grid-cols-3 gap-6 mt-24 max-w-4xl mx-auto">
+        <div class="bg-white rounded-2xl p-8 shadow-md-1 hover:shadow-md-2 transition-md">
+          <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-5">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">智能路由</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">自动识别请求格式，无缝对接多家 LLM 服务商</p>
+        </div>
+        <div class="bg-white rounded-2xl p-8 shadow-md-1 hover:shadow-md-2 transition-md">
+          <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-5">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">精确计费</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">按 Token 独立定价，每一分钱都花得明白</p>
+        </div>
+        <div class="bg-white rounded-2xl p-8 shadow-md-1 hover:shadow-md-2 transition-md">
+          <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-5">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">流式输出</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">完整支持 SSE 流式响应，实时获取结果</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Dashboard -->
+    <div id="user-content" class="hidden">
+      <!-- Tabs -->
+      <div class="relative border-b border-gray-200 mb-8">
+        <div class="flex gap-8">
+          <button onclick="showTab('overview')" class="tab-btn py-4 text-sm font-medium text-black" data-tab="overview">概览</button>
+          <button onclick="showTab('keys')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="keys">API Keys</button>
+          <button onclick="showTab('usage')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="usage">用量</button>
+          <button onclick="showTab('orders')" class="tab-btn py-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-md" data-tab="orders">充值</button>
+        </div>
+        <div id="tab-indicator" class="tab-indicator absolute bottom-0 h-0.5 bg-black" style="left: 0; width: 32px;"></div>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="tab-overview" class="tab-content">
+        <!-- Stats Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-10">
+          <div class="bg-white rounded-2xl p-6 shadow-md-1">
+            <p class="text-sm text-gray-400 font-medium mb-1">余额</p>
+            <p class="text-3xl font-semibold" id="stat-balance">-</p>
+            <button onclick="showRechargeModal()" class="mt-4 text-sm font-medium hover:text-gray-600 transition-md">充值 →</button>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-md-1">
+            <p class="text-sm text-gray-400 font-medium mb-1">今日请求</p>
+            <p class="text-3xl font-semibold" id="stat-requests">-</p>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-md-1">
+            <p class="text-sm text-gray-400 font-medium mb-1">今日消费</p>
+            <p class="text-3xl font-semibold" id="stat-cost">-</p>
+          </div>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="bg-white rounded-2xl p-8 shadow-md-1">
+          <h3 class="text-lg font-semibold mb-6">快速开始</h3>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-500 mb-2">API Endpoint</label>
+            <div class="flex">
+              <input type="text" readonly id="api-endpoint" class="flex-1 px-4 py-3 bg-surface-2 border-0 rounded-l-xl text-sm font-mono">
+              <button onclick="copyToClipboard(document.getElementById('api-endpoint').value)" class="px-5 bg-surface-2 rounded-r-xl text-sm font-medium hover:bg-surface-3 transition-md">复制</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-500 mb-2">Python</label>
+            <pre class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm overflow-x-auto font-mono leading-relaxed"><code><span class="text-gray-500">from</span> openai <span class="text-gray-500">import</span> OpenAI
+
+client = OpenAI(
+    api_key=<span class="text-emerald-400">"your-api-key"</span>,
+    base_url=<span class="text-emerald-400">"<span id="code-base-url"></span>"</span>
+)
+
+response = client.chat.completions.create(
+    model=<span class="text-emerald-400">"gpt-4o"</span>,
+    messages=[{<span class="text-emerald-400">"role"</span>: <span class="text-emerald-400">"user"</span>, <span class="text-emerald-400">"content"</span>: <span class="text-emerald-400">"Hello!"</span>}]
+)
+<span class="text-gray-500">print</span>(response.choices[0].message.content)</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys Tab -->
+      <div id="tab-keys" class="tab-content hidden">
+        <div class="bg-white rounded-2xl shadow-md-1 overflow-hidden">
+          <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-semibold">API Keys</h3>
+            <button onclick="createApiKey()" class="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-md ripple">
+              新建
+            </button>
+          </div>
+          <div id="keys-list">
+            <div class="px-8 py-12 text-center text-gray-400">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usage Tab -->
+      <div id="tab-usage" class="tab-content hidden">
+        <div class="bg-white rounded-2xl p-8 shadow-md-1">
+          <h3 class="font-semibold mb-6">最近 30 天</h3>
+          <div id="usage-chart" class="h-48 flex items-end gap-1 mb-8">
+            <!-- Chart bars -->
+          </div>
+          <div id="usage-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Summary cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div id="tab-orders" class="tab-content hidden">
+        <div class="bg-white rounded-2xl shadow-md-1 overflow-hidden">
+          <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-semibold">充值记录</h3>
+            <button onclick="showRechargeModal()" class="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-md ripple">
+              充值
+            </button>
+          </div>
+          <div id="orders-list">
+            <div class="px-8 py-12 text-center text-gray-400">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Recharge Modal -->
+  <div id="recharge-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-md-4 p-8 w-full max-w-md mx-4 transform transition-all">
+      <h3 class="text-xl font-semibold mb-6">充值</h3>
+      <div class="space-y-5">
+        <div class="grid grid-cols-4 gap-3">
+          <button onclick="setRechargeAmount(10)" class="py-3 border-2 border-gray-200 rounded-xl font-medium hover:border-black transition-md">10</button>
+          <button onclick="setRechargeAmount(50)" class="py-3 border-2 border-gray-200 rounded-xl font-medium hover:border-black transition-md">50</button>
+          <button onclick="setRechargeAmount(100)" class="py-3 border-2 border-gray-200 rounded-xl font-medium hover:border-black transition-md">100</button>
+          <button onclick="setRechargeAmount(500)" class="py-3 border-2 border-gray-200 rounded-xl font-medium hover:border-black transition-md">500</button>
+        </div>
+        <input type="number" id="recharge-amount" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center font-medium focus:border-black transition-md" placeholder="自定义金额" min="1">
+        <div class="flex gap-3 pt-2">
+          <button onclick="hideRechargeModal()" class="flex-1 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-surface-2 transition-md">取消</button>
+          <button onclick="submitRecharge()" class="flex-1 py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-md ripple">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Key Modal -->
+  <div id="new-key-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-md-4 p-8 w-full max-w-lg mx-4">
+      <h3 class="text-xl font-semibold mb-4">Key 已创建</h3>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+        <p class="text-sm text-amber-800">请妥善保管，此密钥只显示一次</p>
+      </div>
+      <div class="flex mb-5">
+        <input type="text" readonly id="new-key-value" class="flex-1 px-4 py-3 bg-surface-2 rounded-l-xl text-sm font-mono">
+        <button onclick="copyToClipboard(document.getElementById('new-key-value').value)" class="px-5 bg-surface-2 rounded-r-xl text-sm font-medium hover:bg-surface-3 transition-md">复制</button>
+      </div>
+      <button onclick="hideNewKeyModal()" class="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-md ripple">确定</button>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      updateApiEndpoint();
+      updateTabIndicator();
+    });
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          showLoggedInUI();
+          loadOverviewData();
+        } else {
+          showGuestUI();
+        }
+      } catch (e) {
+        showGuestUI();
+      }
+    }
+
+    function showLoggedInUI() {
+      document.getElementById('nav-guest').classList.add('hidden');
+      document.getElementById('nav-user').classList.remove('hidden');
+      document.getElementById('nav-user').classList.add('flex');
+      document.getElementById('guest-content').classList.add('hidden');
+      document.getElementById('user-content').classList.remove('hidden');
+
+      document.getElementById('user-name').textContent = currentUser.username;
+      document.getElementById('user-avatar').src = currentUser.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.username}&backgroundColor=000000`;
+      document.getElementById('user-balance').textContent = `¥${currentUser.balance.toFixed(2)}`;
+      document.getElementById('stat-balance').textContent = currentUser.balance.toFixed(2);
+
+      if (currentUser.is_admin) {
+        document.getElementById('admin-link').classList.remove('hidden');
+      }
+    }
+
+    function showGuestUI() {
+      document.getElementById('nav-guest').classList.remove('hidden');
+      document.getElementById('nav-user').classList.add('hidden');
+      document.getElementById('guest-content').classList.remove('hidden');
+      document.getElementById('user-content').classList.add('hidden');
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      location.reload();
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.remove('text-gray-400');
+          btn.classList.add('text-black');
+        } else {
+          btn.classList.add('text-gray-400');
+          btn.classList.remove('text-black');
+        }
+      });
+
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      updateTabIndicator();
+
+      if (tabName === 'keys') loadKeys();
+      if (tabName === 'usage') loadUsage();
+      if (tabName === 'orders') loadOrders();
+    }
+
+    function updateTabIndicator() {
+      const activeBtn = document.querySelector('.tab-btn.text-black');
+      const indicator = document.getElementById('tab-indicator');
+      if (activeBtn && indicator) {
+        indicator.style.left = activeBtn.offsetLeft + 'px';
+        indicator.style.width = activeBtn.offsetWidth + 'px';
+      }
+    }
+
+    async function loadOverviewData() {
+      try {
+        const res = await fetch('/api/user/usage?days=1');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('stat-requests').textContent = data.summary.total_requests;
+          document.getElementById('stat-cost').textContent = data.summary.total_cost.toFixed(4);
+        }
+      } catch (e) {
+        console.error('Failed to load overview:', e);
+      }
+    }
+
+    async function loadKeys() {
+      const container = document.getElementById('keys-list');
+      try {
+        const res = await fetch('/api/user/keys');
+        const data = await res.json();
+
+        if (data.keys.length === 0) {
+          container.innerHTML = '<div class="px-8 py-12 text-center text-gray-400">暂无 API Key</div>';
+          return;
+        }
+
+        container.innerHTML = data.keys.map(key => `
+          <div class="px-8 py-5 flex items-center justify-between border-b border-gray-50 last:border-0 hover:bg-surface-1 transition-md">
+            <div>
+              <p class="font-mono text-sm">${key.key}</p>
+              <p class="text-xs text-gray-400 mt-1">
+                ${key.name} · ${new Date(key.created_at).toLocaleDateString()}
+                ${key.last_used ? ` · 最后使用 ${new Date(key.last_used).toLocaleDateString()}` : ''}
+              </p>
+            </div>
+            <button onclick="deleteKey('${key.full_key || key.key}')" class="text-sm text-gray-400 hover:text-red-500 transition-md">删除</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<div class="px-8 py-12 text-center text-red-500">加载失败</div>';
+      }
+    }
+
+    async function createApiKey() {
+      const name = prompt('Key 名称（可选）：') || 'default';
+      try {
+        const res = await fetch('/api/user/keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        if (data.key) {
+          document.getElementById('new-key-value').value = data.key;
+          document.getElementById('new-key-modal').classList.remove('hidden');
+          document.getElementById('new-key-modal').classList.add('flex');
+          loadKeys();
+        } else {
+          alert('创建失败：' + (data.error?.message || '未知错误'));
+        }
+      } catch (e) {
+        alert('创建失败：' + e.message);
+      }
+    }
+
+    async function deleteKey(key) {
+      if (!confirm('确定删除此 API Key？')) return;
+      try {
+        await fetch(`/api/user/keys/${key}`, { method: 'DELETE' });
+        loadKeys();
+      } catch (e) {
+        alert('删除失败：' + e.message);
+      }
+    }
+
+    async function loadUsage() {
+      try {
+        const res = await fetch('/api/user/usage?days=30');
+        const data = await res.json();
+
+        document.getElementById('usage-summary').innerHTML = `
+          <div class="bg-surface-2 rounded-xl p-4">
+            <p class="text-xs text-gray-400 mb-1">总请求</p>
+            <p class="text-xl font-semibold">${data.summary.total_requests}</p>
+          </div>
+          <div class="bg-surface-2 rounded-xl p-4">
+            <p class="text-xs text-gray-400 mb-1">输入 Tokens</p>
+            <p class="text-xl font-semibold">${data.summary.total_input_tokens.toLocaleString()}</p>
+          </div>
+          <div class="bg-surface-2 rounded-xl p-4">
+            <p class="text-xs text-gray-400 mb-1">输出 Tokens</p>
+            <p class="text-xl font-semibold">${data.summary.total_output_tokens.toLocaleString()}</p>
+          </div>
+          <div class="bg-surface-2 rounded-xl p-4">
+            <p class="text-xs text-gray-400 mb-1">总消费</p>
+            <p class="text-xl font-semibold">${data.summary.total_cost.toFixed(4)}</p>
+          </div>
+        `;
+
+        const maxCost = Math.max(...data.daily.map(d => d.cost), 0.001);
+        const chartHtml = data.daily.slice().reverse().map(d => {
+          const height = (d.cost / maxCost) * 100;
+          return `<div class="flex-1 bg-gray-200 hover:bg-black rounded-t cursor-pointer transition-md" style="height: ${Math.max(height, 2)}%" title="${d.date}: ${d.cost.toFixed(4)}"></div>`;
+        }).join('');
+        document.getElementById('usage-chart').innerHTML = chartHtml || '<div class="text-gray-400 w-full text-center">暂无数据</div>';
+
+      } catch (e) {
+        console.error('Failed to load usage:', e);
+      }
+    }
+
+    async function loadOrders() {
+      const container = document.getElementById('orders-list');
+      try {
+        const res = await fetch('/api/user/orders');
+        const data = await res.json();
+
+        if (data.orders.length === 0) {
+          container.innerHTML = '<div class="px-8 py-12 text-center text-gray-400">暂无充值记录</div>';
+          return;
+        }
+
+        container.innerHTML = data.orders.map(order => `
+          <div class="px-8 py-5 flex items-center justify-between border-b border-gray-50 last:border-0">
+            <div>
+              <p class="font-medium">${order.money} 积分</p>
+              <p class="text-xs text-gray-400 mt-1">${order.trade_no} · ${new Date(order.created_at).toLocaleString()}</p>
+            </div>
+            <span class="px-3 py-1 text-xs font-medium rounded-full ${order.status === 1 ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}">
+              ${order.status === 1 ? '完成' : '待支付'}
+            </span>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<div class="px-8 py-12 text-center text-red-500">加载失败</div>';
+      }
+    }
+
+    function showRechargeModal() {
+      document.getElementById('recharge-modal').classList.remove('hidden');
+      document.getElementById('recharge-modal').classList.add('flex');
+    }
+
+    function hideRechargeModal() {
+      document.getElementById('recharge-modal').classList.add('hidden');
+      document.getElementById('recharge-modal').classList.remove('flex');
+    }
+
+    function setRechargeAmount(amount) {
+      document.getElementById('recharge-amount').value = amount;
+    }
+
+    async function submitRecharge() {
+      const amount = parseFloat(document.getElementById('recharge-amount').value);
+      if (!amount || amount <= 0) {
+        alert('请输入有效金额');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/pay/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ money: amount })
+        });
+        const data = await res.json();
+        if (data.pay_url) {
+          window.location.href = data.pay_url;
+        } else {
+          alert('创建订单失败：' + (data.error?.message || '未知错误'));
+        }
+      } catch (e) {
+        alert('创建订单失败：' + e.message);
+      }
+    }
+
+    function hideNewKeyModal() {
+      document.getElementById('new-key-modal').classList.add('hidden');
+      document.getElementById('new-key-modal').classList.remove('flex');
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('已复制');
+      });
+    }
+
+    function updateApiEndpoint() {
+      const endpoint = window.location.origin + '/v1';
+      document.getElementById('api-endpoint').value = endpoint;
+      document.getElementById('code-base-url').textContent = endpoint;
+    }
+  </script>
+</body>
+</html>
